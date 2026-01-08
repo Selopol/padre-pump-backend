@@ -3,7 +3,6 @@
  * Monitors new Pump.fun coins and tracks creators via Twitter
  */
 
-const { fetchRecentCoins } = require('../utils/pumpfun-api');
 const { processAndSaveCoin } = require('../services/creator-tracker');
 
 const SCAN_INTERVAL = 10000; // 10 seconds
@@ -13,6 +12,17 @@ let isRunning = false;
 let lastScannedTimestamp = Date.now() / 1000; // Unix timestamp in seconds
 let processedMints = new Set();
 let scanInterval = null;
+let fetchRecentCoins = null;
+
+/**
+ * Initialize - load ES modules
+ */
+async function initialize() {
+  if (!fetchRecentCoins) {
+    const pumpfunApi = await import('../utils/pumpfun-api.js');
+    fetchRecentCoins = pumpfunApi.fetchRecentCoins;
+  }
+}
 
 /**
  * Start real-time scanning
@@ -22,6 +32,9 @@ async function startRealtimeScanning() {
     console.log('⚠️  Real-time scanner already running');
     return;
   }
+
+  // Initialize
+  await initialize();
 
   isRunning = true;
   console.log('🚀 Starting real-time creator scanner...');
