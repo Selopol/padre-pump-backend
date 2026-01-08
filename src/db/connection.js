@@ -4,15 +4,22 @@ import config from '../../config/config.js';
 const { Pool } = pg;
 
 // Create PostgreSQL connection pool
+// Railway provides DATABASE_URL, use it if available
+const connectionConfig = config.database.url
+  ? { connectionString: config.database.url, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false }
+  : {
+      host: config.database.host,
+      port: config.database.port,
+      database: config.database.name,
+      user: config.database.user,
+      password: config.database.password,
+    };
+
 export const pool = new Pool({
-  host: config.database.host,
-  port: config.database.port,
-  database: config.database.name,
-  user: config.database.user,
-  password: config.database.password,
+  ...connectionConfig,
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
 });
 
 // Test connection
