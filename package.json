@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "npm run migrate && node src/index.js",
+    "start:creator": "node src/index-creator.js",
     "dev": "node --watch src/index.js",
+    "dev:creator": "node --watch src/index-creator.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js"
   },
