@@ -29,9 +29,17 @@ async function runMigration(pool) {
     console.log('🔄 Attempting individual table creation...');
     
     try {
+      // Drop old tables if they exist
+      await pool.query(`DROP TABLE IF EXISTS alerts CASCADE`);
+      await pool.query(`DROP TABLE IF EXISTS migrations CASCADE`);
+      await pool.query(`DROP TABLE IF EXISTS coins CASCADE`);
+      await pool.query(`DROP TABLE IF EXISTS developers CASCADE`);
+      await pool.query(`DROP TABLE IF EXISTS creators CASCADE`);
+      console.log('  ✅ Dropped old tables');
+      
       // Create creators table
       await pool.query(`
-        CREATE TABLE IF NOT EXISTS creators (
+        CREATE TABLE creators (
           id SERIAL PRIMARY KEY,
           twitter_handle VARCHAR(100) UNIQUE NOT NULL,
           twitter_id VARCHAR(50) UNIQUE,
