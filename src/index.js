@@ -3,7 +3,7 @@ import { pool } from './db/connection.js';
 import { createServer, startServer } from './api/server.js';
 import { performHistoricalScan } from './scanners/historical.js';
 import { startRealtimeMonitor, startMigrationMonitor } from './scanners/realtime.js';
-import { walletTracker } from './scanners/wallet-tracker.js';
+// import { walletTracker } from './scanners/wallet-tracker.js'; // Temporarily disabled
 
 /**
  * Main application entry point
@@ -55,7 +55,7 @@ async function main() {
       process.stopMonitors = () => {
         stopRealtimeMonitor();
         stopMigrationMonitor();
-        walletTracker.stop();
+        // walletTracker.stop(); // Temporarily disabled
       };
     } else {
       console.log('⏭️  Real-time monitoring disabled, skipping...');
@@ -63,8 +63,8 @@ async function main() {
     }
 
     // Step 5: Start WebSocket wallet tracker for INSTANT alerts
-    console.log('⚡ Starting instant wallet tracker...');
-    await walletTracker.start();
+    // console.log('⚡ Starting instant wallet tracker...');
+    // await walletTracker.start(); // Temporarily disabled
 
     console.log('');
     console.log('═══════════════════════════════════════════════════════════');
