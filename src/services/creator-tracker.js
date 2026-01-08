@@ -5,6 +5,7 @@
 
 const { getTwitterInfoFromUri } = require('./metadata-parser');
 const { identifyCreator } = require('./twitter-api');
+const { getTokenMetadataUri } = require('./solana-rpc');
 
 // Pool will be injected
 let pool = null;
@@ -27,11 +28,10 @@ async function initialize() {
 async function processCoin(coin) {
   try {
     console.log(`🔍 Processing coin: ${coin.symbol} (${coin.mint})`);
-    console.log(`[DEBUG] Coin keys: ${Object.keys(coin).join(', ')}`);
 
-    // Extract metadata URI
-    const metadataUri = coin.uri || coin.metadata_uri || coin.metadataUri;
-    console.log(`[DEBUG] Metadata URI: ${metadataUri || 'NOT FOUND'}`);
+    // Get metadata URI from Solana blockchain
+    const metadataUri = await getTokenMetadataUri(coin.mint);
+    console.log(`[DEBUG] Metadata URI from Solana: ${metadataUri || 'NOT FOUND'}`);
     
     if (!metadataUri) {
       console.log(`⚠️  No metadata URI for ${coin.symbol}`);
