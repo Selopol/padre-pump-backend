@@ -5,12 +5,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const config = require('../config/config');
-const { pool } = require('./db/connection');
-const { createServer, startServer } = require('./api/server');
-const { startRealtimeScanning, stopRealtimeScanning } = require('./scanners/realtime-creator');
-const { testConnection } = require('./services/twitter-api');
-const creatorRoutes = require('./api/routes-creator');
 
 /**
  * Main application entry point
@@ -21,16 +15,25 @@ async function main() {
   console.log('🚀 PADRE PUMP.FUN CREATOR TRACKER');
   console.log('═══════════════════════════════════════════════════════════');
   console.log('');
-  console.log('⚙️  Configuration:');
-  console.log(`  Environment: ${config.server.env}`);
-  console.log(`  Port: ${config.server.port}`);
-  console.log(`  Database: ${config.database.name}`);
-  console.log(`  Twitter API: Enabled`);
-  console.log('');
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('');
 
   try {
+    // Dynamic imports for ES modules
+    const config = (await import('../config/config.js')).default;
+    const { pool } = await import('./db/connection.js');
+    const { createServer, startServer } = await import('./api/server.js');
+    const { startRealtimeScanning, stopRealtimeScanning } = require('./scanners/realtime-creator');
+    const { testConnection } = require('./services/twitter-api');
+    const creatorRoutes = require('./api/routes-creator');
+
+    console.log('⚙️  Configuration:');
+    console.log(`  Environment: ${config.server.env}`);
+    console.log(`  Port: ${config.server.port}`);
+    console.log(`  Database: ${config.database.name}`);
+    console.log(`  Twitter API: Enabled`);
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('');
+
     // Step 1: Test database connection
     console.log('📊 Testing database connection...');
     await pool.query('SELECT NOW()');
@@ -82,6 +85,14 @@ async function main() {
     console.log('Press Ctrl+C to stop');
     console.log('');
 
+    // Store references for shutdown
+    global.appShutdown = async () => {
+      console.log('🛑 Stopping creator scanner...');
+      stopRealtimeScanning();
+      console.log('🛑 Closing database connection...');
+      await pool.end();
+    };
+
   } catch (error) {
     console.error('');
     console.error('═══════════════════════════════════════════════════════════');
@@ -109,13 +120,9 @@ async function shutdown(signal) {
   console.log('');
 
   try {
-    // Stop scanner
-    console.log('🛑 Stopping creator scanner...');
-    stopRealtimeScanning();
-
-    // Close database connection
-    console.log('🛑 Closing database connection...');
-    await pool.end();
+    if (global.appShutdown) {
+      await global.appShutdown();
+    }
 
     console.log('');
     console.log('✅ Shutdown complete');

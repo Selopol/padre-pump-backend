@@ -5,7 +5,19 @@
 
 const { getTwitterInfoFromUri } = require('./metadata-parser');
 const { identifyCreator } = require('./twitter-api');
-const { pool } = require('../db/connection');
+
+// Pool will be injected
+let pool = null;
+
+/**
+ * Initialize with database pool
+ */
+async function initialize() {
+  if (!pool) {
+    const connection = await import('../db/connection.js');
+    pool = connection.pool;
+  }
+}
 
 /**
  * Process a coin and identify its creator
@@ -73,6 +85,8 @@ async function processCoin(coin) {
  * @returns {Promise<Object>} - Saved creator
  */
 async function saveCreator(creatorData) {
+  await initialize();
+  
   const query = `
     INSERT INTO creators (
       twitter_handle, 
@@ -107,6 +121,8 @@ async function saveCreator(creatorData) {
  * @returns {Promise<Object>} - Saved coin
  */
 async function saveCoin(coinData) {
+  await initialize();
+  
   const query = `
     INSERT INTO coins (
       mint,
@@ -162,6 +178,8 @@ async function saveCoin(coinData) {
  * @returns {Promise<void>}
  */
 async function updateCreatorStats(twitterHandle) {
+  await initialize();
+  
   const query = `
     UPDATE creators
     SET
@@ -260,6 +278,8 @@ async function processAndSaveCoin(coin) {
  * @returns {Promise<Object>} - Creator stats
  */
 async function getCreatorStatsByMint(mint) {
+  await initialize();
+  
   const query = `
     SELECT 
       c.mint,
@@ -290,6 +310,7 @@ async function getCreatorStatsByMint(mint) {
 }
 
 module.exports = {
+  initialize,
   processCoin,
   saveCreator,
   saveCoin,
