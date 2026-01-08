@@ -140,9 +140,14 @@ function extractTwitterInfo(metadata) {
     fieldsToCheck.push(metadata.external_url);
   }
 
+  // Debug: log what we're checking
+  console.log(`[Metadata Parser] Checking ${fieldsToCheck.filter(f => f).length} fields for Twitter URLs`);
+  
   // Scan all fields for Twitter URLs
   for (const field of fieldsToCheck) {
     if (!field || typeof field !== 'string') continue;
+    
+    console.log(`[Metadata Parser] Checking field: ${field.substring(0, 100)}...`);
 
     // Check if it's a tweet URL
     if (field.match(/(?:twitter\.com|x\.com)\/\w+\/status\/\d+/)) {
