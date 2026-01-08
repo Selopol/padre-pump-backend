@@ -6,17 +6,65 @@ import { pool } from './connection.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-async function migrate() {
-  console.log('🚀 Starting database migration...');
-
+/**
+ * Run database migration (for automatic startup)
+ */
+export async function runMigration() {
   try {
+    // Check if tables already exist
+    const checkResult = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'developers'
+    `);
+
+    if (checkResult.rows.length > 0) {
+      console.log('  ℹ️  Tables already exist, skipping migration');
+      return;
+    }
+
+    console.log('  📄 Reading schema file...');
     // Read schema file
     const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf8');
 
+    console.log('  🔨 Creating tables...');
     // Execute schema
     await pool.query(schema);
 
+    console.log('  ✅ Tables created successfully');
+
+    // Verify tables
+    const result = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+      ORDER BY table_name
+    `);
+
+    console.log('  📋 Verified tables:');
+    result.rows.forEach(row => {
+      console.log(`     ✓ ${row.table_name}`);
+    });
+
+  } catch (error) {
+    console.error('  ❌ Migration failed:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Manual migration script (for CLI usage)
+ */
+async function migrate() {
+  console.log('🚀 Starting database migration...');
+
+  try {
+    await runMigration();
+    
+    console.log('');
     console.log('✅ Database migration completed successfully!');
     console.log('');
     console.log('Tables created:');
@@ -29,21 +77,6 @@ async function migrate() {
     console.log('  - developer_stats');
     console.log('  - recent_alerts');
 
-    // Verify tables
-    const result = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_type = 'BASE TABLE'
-      ORDER BY table_name
-    `);
-
-    console.log('');
-    console.log('Verified tables in database:');
-    result.rows.forEach(row => {
-      console.log(`  ✓ ${row.table_name}`);
-    });
-
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);
@@ -51,5 +84,7 @@ async function migrate() {
   }
 }
 
-// Run migration
-migrate();
+// Run migration if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  migrate();
+}

@@ -31,6 +31,13 @@ async function main() {
     console.log('✅ Database connected successfully');
     console.log('');
 
+    // Step 1.5: Run database migration
+    console.log('🛠️  Running database migration...');
+    const { runMigration } = await import('./db/migrate.js');
+    await runMigration();
+    console.log('✅ Database migration completed');
+    console.log('');
+
     // Step 2: Create and start Express server
     console.log('🌐 Starting API server...');
     const app = createServer();
