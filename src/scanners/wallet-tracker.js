@@ -5,8 +5,7 @@
 
 import WebSocket from 'ws';
 import config from '../../config/config.js';
-import { getDeveloperByAddress, getAllDevelopers } from '../db/queries.js';
-import { createAlert } from '../services/developer.js';
+import { getDeveloperByAddress, getAllDevelopers, createAlert } from '../db/queries.js';
 
 class WalletTracker {
   constructor() {
@@ -240,8 +239,15 @@ class WalletTracker {
           const developer = await getDeveloperByAddress(wallet);
           
           if (developer && developer.migration_count > 0) {
-            // Create alert
-            await createAlert(latestCoin.mint, wallet);
+            // Create alert in database
+            await createAlert({
+              coinMint: latestCoin.mint,
+              developerAddress: wallet,
+              coinSymbol: latestCoin.symbol,
+              coinName: latestCoin.name,
+              developerMigrationCount: developer.migration_count,
+              developerMigrationRate: developer.migration_rate,
+            });
             
             console.log(`✅ Alert created for ${latestCoin.symbol}`);
             console.log(`   Developer: ${developer.migration_count} migrations (${developer.migration_rate}%)`);
