@@ -27,9 +27,11 @@ async function initialize() {
 async function processCoin(coin) {
   try {
     console.log(`🔍 Processing coin: ${coin.symbol} (${coin.mint})`);
+    console.log(`[DEBUG] Coin keys: ${Object.keys(coin).join(', ')}`);
 
     // Extract metadata URI
     const metadataUri = coin.uri || coin.metadata_uri || coin.metadataUri;
+    console.log(`[DEBUG] Metadata URI: ${metadataUri || 'NOT FOUND'}`);
     
     if (!metadataUri) {
       console.log(`⚠️  No metadata URI for ${coin.symbol}`);
