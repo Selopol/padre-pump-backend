@@ -37,8 +37,22 @@ export async function performHistoricalScan() {
     console.log(`✅ Found ${developerAddresses.length} unique developers`);
     console.log('');
 
-    // Step 3: Store migrated coins in database
-    console.log('💾 Step 3: Storing migrated coins in database...');
+    // Step 3: Create developer records first (required for foreign key)
+    console.log('👤 Step 3: Creating developer records...');
+    const { upsertDeveloper } = await import('../db/queries.js');
+    for (const address of developerAddresses) {
+      try {
+        await upsertDeveloper({ address, totalCoins: 0, migrationCount: 0, migrationRate: 0 });
+      } catch (error) {
+        console.error(`  ❌ Error creating developer ${address}:`, error.message);
+        stats.errors++;
+      }
+    }
+    console.log(`✅ Created ${developerAddresses.length} developer records`);
+    console.log('');
+
+    // Step 4: Store migrated coins in database
+    console.log('💾 Step 4: Storing migrated coins in database...');
     for (const coin of migratedCoins) {
       try {
         await upsertCoin(coin);
@@ -60,8 +74,8 @@ export async function performHistoricalScan() {
     console.log(`✅ Stored ${migratedCoins.length} coins and ${stats.migrationsRecorded} migrations`);
     console.log('');
 
-    // Step 4: Update developer statistics
-    console.log('📊 Step 4: Updating developer statistics...');
+    // Step 5: Update developer statistics
+    console.log('📊 Step 5: Updating developer statistics...');
     console.log(`Processing ${developerAddresses.length} developers...`);
     console.log('');
 
