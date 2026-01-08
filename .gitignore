@@ -15,6 +15,7 @@ npm-debug.log*
 # Database
 *.sql
 backup*.sql
+!src/db/schema.sql
 
 # OS
 .DS_Store
