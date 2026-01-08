@@ -5,6 +5,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
+const cors = require('cors');
 
 /**
  * Main application entry point
@@ -20,7 +22,6 @@ async function main() {
     // Dynamic imports for ES modules
     const config = (await import('../config/config.js')).default;
     const { pool } = await import('./db/connection.js');
-    const { createServer, startServer } = await import('./api/server.js');
     const { startRealtimeScanning, stopRealtimeScanning } = require('./scanners/realtime-creator');
     const { testConnection } = require('./services/twitter-api');
     const creatorRoutes = require('./api/routes-creator');
@@ -59,14 +60,62 @@ async function main() {
     }
     console.log('');
 
-    // Step 4: Create and start Express server with creator routes
+    // Step 4: Create Express server
     console.log('🌐 Starting API server...');
-    const app = createServer();
+    const app = express();
+    
+    // Middleware
+    app.use(cors({
+      origin: config.api.corsOrigin,
+      credentials: true
+    }));
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    
+    // Request logging
+    app.use((req, res, next) => {
+      console.log(`${req.method} ${req.path}`);
+      next();
+    });
     
     // Add creator routes
     app.use('/api', creatorRoutes);
     
-    await startServer(app);
+    // Root endpoint
+    app.get('/', (req, res) => {
+      res.json({
+        name: 'Padre Pump.fun Creator Tracker API',
+        version: '2.0.0',
+        status: 'running',
+        endpoints: {
+          health: '/api/health',
+          stats: '/api/stats',
+          creators: '/api/creators',
+          coins: '/api/coins/recent',
+          coinByMint: '/api/coins/:mint',
+          batch: '/api/coins/batch',
+          search: '/api/search'
+        }
+      });
+    });
+    
+    // Error handler
+    app.use((err, req, res, next) => {
+      console.error('Error:', err);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: err.message
+      });
+    });
+    
+    // Start server
+    const PORT = config.server.port;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ API server listening on port ${PORT}`);
+    });
+    
+    console.log('');
 
     // Step 5: Start real-time creator scanning
     console.log('👁️  Starting real-time creator scanner...');
@@ -78,7 +127,7 @@ async function main() {
     console.log('═══════════════════════════════════════════════════════════');
     console.log('');
     console.log('🎯 Creator tracking service is now running 24/7');
-    console.log('📡 API available at: http://localhost:' + config.server.port);
+    console.log('📡 API available at: http://localhost:' + PORT);
     console.log('👁️  Monitoring for new coins and identifying creators...');
     console.log('🐦 Tracking creator statistics via Twitter');
     console.log('');
