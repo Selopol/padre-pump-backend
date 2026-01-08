@@ -41,11 +41,12 @@ async function main() {
     console.log('');
 
     // Step 2: Run database migration for creator schema
-    console.log('🛠️  Running creator schema migration...');
-    const schemaPath = path.join(__dirname, 'db', 'schema-creator.sql');
-    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-    await pool.query(schemaSql);
-    console.log('✅ Creator schema migration completed');
+    const { runMigration } = require('./db/migrate-creator');
+    const migrationSuccess = await runMigration(pool);
+    
+    if (!migrationSuccess) {
+      console.error('❌ Migration failed, but continuing...');
+    }
     console.log('');
 
     // Step 3: Test Twitter API connection
