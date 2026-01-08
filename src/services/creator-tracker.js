@@ -89,6 +89,8 @@ async function processCoin(coin) {
 async function saveCreator(creatorData) {
   await initialize();
   
+  console.log(`[saveCreator] Saving creator: @${creatorData.twitterHandle}`);
+  
   const query = `
     INSERT INTO creators (
       twitter_handle, 
@@ -124,6 +126,8 @@ async function saveCreator(creatorData) {
  */
 async function saveCoin(coinData) {
   await initialize();
+  
+  console.log(`[saveCoin] Saving coin: ${coinData.symbol} (${coinData.mint})`);
   
   const query = `
     INSERT INTO coins (
