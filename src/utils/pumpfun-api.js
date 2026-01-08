@@ -1,6 +1,5 @@
-import config from '../../config/config.js';
-
-const API_BASE = config.pumpfun.apiUrl;
+// Hardcoded API URL to avoid config import issues
+const API_BASE = process.env.PUMPFUN_API_URL || 'https://frontend-api-v3.pump.fun';
 
 /**
  * Fetch coins from Pump.fun API with pagination
