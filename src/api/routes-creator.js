@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { getCreatorStatsByMint } = require('../services/creator-tracker');
-const db = require('../db/connection');
+const { pool } = require('../db/connection');
 
 const router = express.Router();
 
@@ -37,7 +37,7 @@ router.get('/creators', async (req, res) => {
       LIMIT $1 OFFSET $2
     `;
 
-    const result = await db.query(query, [limit, offset]);
+    const result = await pool.query(query, [limit, offset]);
 
     res.json({
       success: true,
@@ -67,7 +67,7 @@ router.get('/creators/:handle', async (req, res) => {
 
     // Get creator
     const creatorQuery = 'SELECT * FROM creators WHERE twitter_handle = $1';
-    const creatorResult = await db.query(creatorQuery, [cleanHandle]);
+    const creatorResult = await pool.query(creatorQuery, [cleanHandle]);
 
     if (creatorResult.rows.length === 0) {
       return res.status(404).json({
@@ -82,7 +82,7 @@ router.get('/creators/:handle', async (req, res) => {
       WHERE creator_twitter_handle = $1
       ORDER BY created_timestamp DESC
     `;
-    const coinsResult = await db.query(coinsQuery, [cleanHandle]);
+    const coinsResult = await pool.query(coinsQuery, [cleanHandle]);
 
     res.json({
       success: true,
@@ -129,7 +129,7 @@ router.get('/coins/recent', async (req, res) => {
       LIMIT $1
     `;
 
-    const result = await db.query(query, [limit]);
+    const result = await pool.query(query, [limit]);
 
     res.json({
       success: true,
@@ -216,7 +216,7 @@ router.post('/coins/batch', async (req, res) => {
       WHERE c.mint = ANY($1)
     `;
 
-    const result = await db.query(query, [limitedMints]);
+    const result = await pool.query(query, [limitedMints]);
 
     // Create a map for easy lookup
     const statsMap = {};
@@ -262,7 +262,7 @@ router.get('/search', async (req, res) => {
     if (type === 'creator') {
       const cleanHandle = q.replace('@', '');
       const query = 'SELECT * FROM creators WHERE twitter_handle ILIKE $1';
-      const result = await db.query(query, [`%${cleanHandle}%`]);
+      const result = await pool.query(query, [`%${cleanHandle}%`]);
 
       return res.json({
         success: true,
@@ -282,7 +282,7 @@ router.get('/search', async (req, res) => {
         LEFT JOIN creators cr ON c.creator_twitter_handle = cr.twitter_handle
         WHERE c.mint = $1 OR c.symbol ILIKE $2
       `;
-      const result = await db.query(query, [q, `%${q}%`]);
+      const result = await pool.query(query, [q, `%${q}%`]);
 
       return res.json({
         success: true,
@@ -324,7 +324,7 @@ router.get('/stats', async (req, res) => {
         (SELECT COUNT(*) FROM creators WHERE total_coins >= 5) as active_creators
     `;
 
-    const result = await db.query(statsQuery);
+    const result = await pool.query(statsQuery);
     const stats = result.rows[0];
 
     // Get top creators
@@ -334,7 +334,7 @@ router.get('/stats', async (req, res) => {
       ORDER BY success_rate DESC, total_coins DESC
       LIMIT 10
     `;
-    const topCreators = await db.query(topCreatorsQuery);
+    const topCreators = await pool.query(topCreatorsQuery);
 
     res.json({
       success: true,
@@ -364,14 +364,14 @@ router.get('/stats', async (req, res) => {
 router.get('/health', async (req, res) => {
   try {
     // Test database connection
-    await db.query('SELECT 1');
+    await pool.query('SELECT 1');
 
     const statsQuery = `
       SELECT
         (SELECT COUNT(*) FROM creators) as total_creators,
         (SELECT COUNT(*) FROM coins) as total_coins
     `;
-    const result = await db.query(statsQuery);
+    const result = await pool.query(statsQuery);
 
     res.json({
       success: true,

@@ -5,7 +5,7 @@
 
 const { getTwitterInfoFromUri } = require('./metadata-parser');
 const { identifyCreator } = require('./twitter-api');
-const db = require('../db/connection');
+const { pool } = require('../db/connection');
 
 /**
  * Process a coin and identify its creator
@@ -97,7 +97,7 @@ async function saveCreator(creatorData) {
     creatorData.twitterProfileUrl
   ];
 
-  const result = await db.query(query, values);
+  const result = await pool.query(query, values);
   return result.rows[0];
 }
 
@@ -152,7 +152,7 @@ async function saveCoin(coinData) {
     JSON.stringify(coinData.metadata)
   ];
 
-  const result = await db.query(query, values);
+  const result = await pool.query(query, values);
   return result.rows[0];
 }
 
@@ -210,7 +210,7 @@ async function updateCreatorStats(twitterHandle) {
     RETURNING *
   `;
 
-  const result = await db.query(query, [twitterHandle]);
+  const result = await pool.query(query, [twitterHandle]);
   return result.rows[0];
 }
 
@@ -280,7 +280,7 @@ async function getCreatorStatsByMint(mint) {
     WHERE c.mint = $1
   `;
 
-  const result = await db.query(query, [mint]);
+  const result = await pool.query(query, [mint]);
   
   if (result.rows.length === 0) {
     return null;

@@ -3,8 +3,8 @@
  * Monitors new Pump.fun coins and tracks creators via Twitter
  */
 
-import { fetchRecentCoins } from '../utils/pumpfun-api.js';
-import { processAndSaveCoin } from '../services/creator-tracker.js';
+const { fetchRecentCoins } = require('../utils/pumpfun-api');
+const { processAndSaveCoin } = require('../services/creator-tracker');
 
 const SCAN_INTERVAL = 10000; // 10 seconds
 const BATCH_SIZE = 50; // Process 50 coins at a time
@@ -12,11 +12,12 @@ const BATCH_SIZE = 50; // Process 50 coins at a time
 let isRunning = false;
 let lastScannedTimestamp = Date.now() / 1000; // Unix timestamp in seconds
 let processedMints = new Set();
+let scanInterval = null;
 
 /**
  * Start real-time scanning
  */
-export async function startRealtimeScanning() {
+async function startRealtimeScanning() {
   if (isRunning) {
     console.log('⚠️  Real-time scanner already running');
     return;
@@ -30,7 +31,7 @@ export async function startRealtimeScanning() {
   await scanNewCoins();
 
   // Set up interval
-  setInterval(async () => {
+  scanInterval = setInterval(async () => {
     if (isRunning) {
       await scanNewCoins();
     }
@@ -40,8 +41,12 @@ export async function startRealtimeScanning() {
 /**
  * Stop real-time scanning
  */
-export function stopRealtimeScanning() {
+function stopRealtimeScanning() {
   isRunning = false;
+  if (scanInterval) {
+    clearInterval(scanInterval);
+    scanInterval = null;
+  }
   console.log('🛑 Stopped real-time creator scanner');
 }
 
@@ -124,7 +129,7 @@ async function scanNewCoins() {
 /**
  * Get scanner status
  */
-export function getScannerStatus() {
+function getScannerStatus() {
   return {
     isRunning,
     lastScannedTimestamp,
@@ -140,7 +145,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export default {
+module.exports = {
   startRealtimeScanning,
   stopRealtimeScanning,
   getScannerStatus

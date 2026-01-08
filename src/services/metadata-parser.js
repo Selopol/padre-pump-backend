@@ -3,6 +3,55 @@
  * Extracts Twitter information from token metadata URI
  */
 
+const https = require('https');
+const http = require('http');
+
+/**
+ * Make HTTP/HTTPS request
+ */
+function makeRequest(url) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const client = urlObj.protocol === 'https:' ? https : http;
+
+    const options = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    };
+
+    const req = client.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ data, contentType: res.headers['content-type'] });
+        } else {
+          reject(new Error(`HTTP error: ${res.statusCode}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
+
+    req.end();
+  });
+}
+
 /**
  * Fetch and parse token metadata from URI
  * @param {string} uri - Metadata URI (from token extensions)
@@ -14,32 +63,24 @@ async function fetchMetadata(uri) {
       throw new Error('No URI provided');
     }
 
-    const response = await fetch(uri);
+    const { data, contentType } = await makeRequest(uri);
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch metadata: ${response.status} ${response.statusText}`);
-    }
-
-    const contentType = response.headers.get('content-type');
-    let data;
+    let metadata;
 
     // Handle both JSON and JavaScript responses
-    if (contentType?.includes('application/json')) {
-      data = await response.json();
+    if (contentType && contentType.includes('application/json')) {
+      metadata = JSON.parse(data);
     } else {
-      // Some metadata URIs return JavaScript, need to parse it
-      const text = await response.text();
-      
       // Try to extract JSON from JavaScript
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = data.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        data = JSON.parse(jsonMatch[0]);
+        metadata = JSON.parse(jsonMatch[0]);
       } else {
         throw new Error('Could not parse metadata');
       }
     }
 
-    return data;
+    return metadata;
   } catch (error) {
     console.error('Error fetching metadata:', error);
     throw error;

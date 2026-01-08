@@ -3,8 +3,53 @@
  * Identifies token creators from tweet URLs or community URLs
  */
 
+const https = require('https');
+
 const API_KEY = process.env.TWITTER_API_KEY || 'new1_defb379335c44d58890c0e2c59ada78f';
 const BASE_URL = 'https://api.twitterapi.io';
+
+/**
+ * Make HTTPS request
+ */
+function makeRequest(path) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.twitterapi.io',
+      path: path,
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(new Error('Failed to parse JSON response'));
+          }
+        } else {
+          reject(new Error(`Twitter API error: ${res.statusCode}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.end();
+  });
+}
 
 /**
  * Extract tweet ID from Twitter URL
@@ -14,9 +59,6 @@ const BASE_URL = 'https://api.twitterapi.io';
 function extractTweetId(url) {
   if (!url) return null;
   
-  // Match patterns:
-  // https://twitter.com/username/status/1234567890
-  // https://x.com/username/status/1234567890
   const match = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
   return match ? match[1] : null;
 }
@@ -29,10 +71,6 @@ function extractTweetId(url) {
 function extractUsername(url) {
   if (!url) return null;
   
-  // Match patterns:
-  // https://twitter.com/username
-  // https://x.com/username
-  // https://twitter.com/username/status/123
   const match = url.match(/(?:twitter\.com|x\.com)\/(@?\w+)/);
   return match ? match[1].replace('@', '') : null;
 }
@@ -44,24 +82,12 @@ function extractUsername(url) {
  */
 async function getTweetDetails(tweetId) {
   try {
-    const response = await fetch(`${BASE_URL}/v2/tweets/${tweetId}`, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Twitter API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await makeRequest(`/v2/tweets/${tweetId}`);
     
     if (!data.data) {
       throw new Error('No tweet data returned');
     }
 
-    // Extract author info from includes
     const author = data.includes?.users?.[0];
     
     return {
@@ -87,19 +113,7 @@ async function getTweetDetails(tweetId) {
 async function getUserByUsername(username) {
   try {
     const cleanUsername = username.replace('@', '');
-    
-    const response = await fetch(`${BASE_URL}/v2/users/by/username/${cleanUsername}`, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Twitter API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await makeRequest(`/v2/users/by/username/${cleanUsername}`);
     
     if (!data.data) {
       throw new Error('No user data returned');
@@ -128,7 +142,6 @@ async function getUserByUsername(username) {
 async function identifyCreator(url, type = 'tweet') {
   try {
     if (type === 'tweet') {
-      // Extract tweet ID and get author
       const tweetId = extractTweetId(url);
       if (!tweetId) {
         throw new Error('Invalid tweet URL');
@@ -145,7 +158,6 @@ async function identifyCreator(url, type = 'tweet') {
         sourceUrl: url
       };
     } else if (type === 'community') {
-      // Extract username from community URL
       const username = extractUsername(url);
       if (!username) {
         throw new Error('Invalid community URL');
@@ -176,15 +188,8 @@ async function identifyCreator(url, type = 'tweet') {
  */
 async function testConnection() {
   try {
-    // Test with a known public tweet
-    const response = await fetch(`${BASE_URL}/v2/tweets/20`, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    return response.ok;
+    await makeRequest('/v2/tweets/20');
+    return true;
   } catch (error) {
     console.error('Twitter API connection test failed:', error);
     return false;

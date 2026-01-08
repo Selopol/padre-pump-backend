@@ -3,10 +3,14 @@
  * Monitors Pump.fun tokens and tracks creators via Twitter
  */
 
-import config from '../config/config.js';
-import { pool } from './db/connection.js';
-import { createServer, startServer } from './api/server.js';
-import { startRealtimeScanning } from './scanners/realtime-creator.js';
+const fs = require('fs');
+const path = require('path');
+const config = require('../config/config');
+const { pool } = require('./db/connection');
+const { createServer, startServer } = require('./api/server');
+const { startRealtimeScanning, stopRealtimeScanning } = require('./scanners/realtime-creator');
+const { testConnection } = require('./services/twitter-api');
+const creatorRoutes = require('./api/routes-creator');
 
 /**
  * Main application entry point
@@ -35,23 +39,14 @@ async function main() {
 
     // Step 2: Run database migration for creator schema
     console.log('🛠️  Running creator schema migration...');
-    const fs = await import('fs');
-    const path = await import('path');
-    const { fileURLToPath } = await import('url');
-    
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
     const schemaPath = path.join(__dirname, 'db', 'schema-creator.sql');
-    
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
     await pool.query(schemaSql);
-    
     console.log('✅ Creator schema migration completed');
     console.log('');
 
     // Step 3: Test Twitter API connection
     console.log('🐦 Testing Twitter API connection...');
-    const { testConnection } = await import('./services/twitter-api.js');
     const twitterOk = await testConnection();
     
     if (twitterOk) {
@@ -66,8 +61,7 @@ async function main() {
     const app = createServer();
     
     // Add creator routes
-    const creatorRoutes = await import('./api/routes-creator.js');
-    app.use('/api', creatorRoutes.default);
+    app.use('/api', creatorRoutes);
     
     await startServer(app);
 
@@ -117,7 +111,6 @@ async function shutdown(signal) {
   try {
     // Stop scanner
     console.log('🛑 Stopping creator scanner...');
-    const { stopRealtimeScanning } = await import('./scanners/realtime-creator.js');
     stopRealtimeScanning();
 
     // Close database connection
