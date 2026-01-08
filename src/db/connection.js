@@ -4,20 +4,33 @@ import config from '../../config/config.js';
 const { Pool } = pg;
 
 // Create PostgreSQL connection pool
-// Railway provides DATABASE_URL, use it if available
-const connectionConfig = config.database.url
-  ? { connectionString: config.database.url, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false }
-  : {
-      host: config.database.host,
-      port: config.database.port,
-      database: config.database.name,
-      user: config.database.user,
-      password: config.database.password,
-    };
+// Railway provides DATABASE_URL, always prefer it
+let connectionConfig;
+
+if (process.env.DATABASE_URL) {
+  // Railway/Production: Use DATABASE_URL with SSL
+  console.log('🔗 Using DATABASE_URL from environment');
+  connectionConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  };
+} else {
+  // Local development: Use individual connection params
+  console.log('🔗 Using local database configuration');
+  connectionConfig = {
+    host: config.database.host,
+    port: config.database.port,
+    database: config.database.name,
+    user: config.database.user,
+    password: config.database.password,
+  };
+}
 
 export const pool = new Pool({
   ...connectionConfig,
-  max: 20, // Maximum number of clients in the pool
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });

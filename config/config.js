@@ -38,9 +38,9 @@ export const config = {
 
   // Scanning
   scanning: {
-    historicalEnabled: process.env.HISTORICAL_SCAN_ENABLED === 'true',
+    historicalEnabled: process.env.HISTORICAL_SCAN_ENABLED !== 'false', // Default true
     historicalLimit: parseInt(process.env.HISTORICAL_SCAN_LIMIT || '10000'),
-    realtimeEnabled: process.env.REALTIME_MONITOR_ENABLED === 'true',
+    realtimeEnabled: process.env.REALTIME_MONITOR_ENABLED !== 'false', // Default true
     scanInterval: parseInt(process.env.SCAN_INTERVAL_MS || '10000'),
     migrationScanInterval: parseInt(process.env.MIGRATION_SCAN_INTERVAL_MS || '60000'),
   },
