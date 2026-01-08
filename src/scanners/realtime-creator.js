@@ -20,7 +20,12 @@ let fetchRecentCoins = null;
 async function initialize() {
   if (!fetchRecentCoins) {
     const pumpfunApi = await import('../utils/pumpfun-api.js');
-    fetchRecentCoins = pumpfunApi.fetchRecentCoins;
+    // Try both named and default export
+    fetchRecentCoins = pumpfunApi.fetchRecentCoins || pumpfunApi.default?.fetchRecentCoins;
+    
+    if (!fetchRecentCoins) {
+      throw new Error('Could not load fetchRecentCoins from pumpfun-api');
+    }
   }
 }
 
