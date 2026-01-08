@@ -193,18 +193,19 @@ async function getCommunityModerators(communityId) {
   try {
     const data = await makeRequest(`/twitter/community/moderators?community_id=${communityId}`);
     
-    if (!data.members || data.members.length === 0) {
+    // API returns 'moderators' not 'members'
+    if (!data.moderators || data.moderators.length === 0) {
       throw new Error('No moderators found');
     }
 
     // First moderator is usually the creator/admin
-    const creator = data.members[0];
+    const creator = data.moderators[0];
     
     return {
       userId: creator.id,
-      username: creator.userName,
+      username: creator.screen_name,
       name: creator.name,
-      profileUrl: `https://twitter.com/${creator.userName}`,
+      profileUrl: `https://twitter.com/${creator.screen_name}`,
       description: creator.description,
       verified: creator.isBlueVerified || false
     };
