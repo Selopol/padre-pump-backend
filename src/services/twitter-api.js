@@ -158,19 +158,21 @@ async function identifyCreator(url, type = 'tweet') {
         sourceUrl: url
       };
     } else if (type === 'community') {
-      const username = extractUsername(url);
-      if (!username) {
+      // Extract community ID from URL
+      const communityId = extractCommunityId(url);
+      if (!communityId) {
         throw new Error('Invalid community URL');
       }
       
-      const userData = await getUserByUsername(username);
+      // Get community moderators (first one is the creator)
+      const creator = await getCommunityModerators(communityId);
       
       return {
         type: 'community',
-        twitterHandle: userData.username,
-        twitterId: userData.userId,
-        twitterName: userData.name,
-        twitterProfileUrl: userData.profileUrl,
+        twitterHandle: creator.username,
+        twitterId: creator.userId,
+        twitterName: creator.name,
+        twitterProfileUrl: creator.profileUrl,
         sourceUrl: url
       };
     } else {
@@ -180,6 +182,48 @@ async function identifyCreator(url, type = 'tweet') {
     console.error('Error identifying creator:', error);
     throw error;
   }
+}
+
+/**
+ * Get community moderators (first one is usually the creator/admin)
+ * @param {string} communityId - Community ID
+ * @returns {Promise<Object>} - First moderator (creator)
+ */
+async function getCommunityModerators(communityId) {
+  try {
+    const data = await makeRequest(`/twitter/community/moderators?community_id=${communityId}`);
+    
+    if (!data.members || data.members.length === 0) {
+      throw new Error('No moderators found');
+    }
+
+    // First moderator is usually the creator/admin
+    const creator = data.members[0];
+    
+    return {
+      userId: creator.id,
+      username: creator.userName,
+      name: creator.name,
+      profileUrl: `https://twitter.com/${creator.userName}`,
+      description: creator.description,
+      verified: creator.isBlueVerified || false
+    };
+  } catch (error) {
+    console.error('Error fetching community moderators:', error);
+    throw error;
+  }
+}
+
+/**
+ * Extract community ID from Twitter community URL
+ * @param {string} url - Twitter community URL
+ * @returns {string|null} - Community ID or null
+ */
+function extractCommunityId(url) {
+  if (!url) return null;
+  
+  const match = url.match(/\/communities\/(\d+)/);
+  return match ? match[1] : null;
 }
 
 /**
@@ -199,8 +243,10 @@ async function testConnection() {
 module.exports = {
   extractTweetId,
   extractUsername,
+  extractCommunityId,
   getTweetDetails,
   getUserByUsername,
+  getCommunityModerators,
   identifyCreator,
   testConnection
 };

@@ -151,8 +151,16 @@ function extractTwitterInfo(metadata) {
       break; // Prioritize tweet over community
     }
 
-    // Check if it's a community/profile URL
-    if (field.match(/(?:twitter\.com|x\.com)\/\w+\/?$/)) {
+    // Check if it's a community URL (specific pattern)
+    if (field.match(/(?:twitter\.com|x\.com)\/i\/communities\/\d+/)) {
+      result.communityUrl = field;
+      if (!result.type) {
+        result.type = 'community';
+      }
+    }
+    
+    // Check if it's a regular profile URL (fallback)
+    if (!result.communityUrl && field.match(/(?:twitter\.com|x\.com)\/\w+\/?$/)) {
       result.communityUrl = field;
       if (!result.type) {
         result.type = 'community';
